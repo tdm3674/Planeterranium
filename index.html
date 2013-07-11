@@ -1,0 +1,173 @@
+<html>
+<head>
+   <title>Planeterrainium</title>
+   <style>
+   body{
+   	background: #000000;
+   	margin: 0px;
+   }
+   </style>
+   <script type="text/javascript" src="https://www.google.com/jsapi?key=ABCDEFG"> </script>
+   <script type="text/javascript">
+		var ge;
+		google.load("earth", "1");
+		
+		// Coordinates of where to jump to.
+		var coordsIndex = -1;
+		var coords = [[35.1998, -55.4561, 0, 2000],
+					  [47.1115, 93.76, 0, 6000],
+					  [40.7462, 6.61, 0, 16000],
+					  [38.189439, -50.976525, 0, 16000],	//color02
+					  [-43.087861, 120.030397, 0, 5000],	//color04
+					  [2.533, -58.85, 0, 5000],			//joe0001
+					  [-47.5, 4.4, 0, 5000],			//joe0003
+					  [-54.2, 12.9, 0, 16000],			//joe0006
+					  [-47.24, 33.86, 0, 5000],			//joe0007
+					  [-15.302797, 89.647692, 0, 2500],	//joe0009
+					  [-21.413194, -69.277103, 0, 2000]	//joe0014
+					  //[-30.89,47.158,0,1206],			//CRL001
+					  //[10.07,157.614,0,3128],               	//CRL002
+					  //[9.801,158.468,0,2697],   		//CRL003
+					  //[23.77,-103.852,0,2553],   		//CRL004
+//					  [-13.92,34.4272,0,3824],   		//CRL005
+					  //[7.4232,165.342,0,1675],			//CRL006
+//					  [-8.0058,25.0162,0,1757],			//CRL007
+//					  [8.9926,69.0938,0,1245]];			//CRL008
+];
+
+		var balloon;
+		var balloonStrs = ["Fluvial Fan on Crater Floor",
+							"Utopia Planitia Scallops, Polygons, and Boulders",
+							"Channels in Northern Arabia Region",
+							"Complex Morphology in Acidalia Region",
+							"Knobs and Thermokarst",
+							"Western Portion of Well-Preserved Impact Crater",
+							"Gully Orientation Survey",
+							"Russel Crater Dunes",
+							"Proctor Crater Dune Field",
+							"Pit on Crater Floor Exposing Layers",
+							"Layered Bedrock Exposed in the Central Uplift of Martin Crater"
+							//"Freshly Made 2Km Wide Crater",
+							//"Cerberus Fossae Fracture",
+							//"Cerberus Fossae",
+							//"Pit Craters of Tractus Catena",
+//							"Fresh Small Rayed Crater",
+							//"Cerberus Fossae Ripple Changes",
+//							"White Rock Feature in Pollack Crater",
+//							"Beautiful Butterfly Crater"
+];
+            
+		function grabFocus(evt) {
+			//Compatible with IE on Windows and Safari/Chrome on OSX
+			window.focus();
+		}
+		window.onmouseup=grabFocus;
+
+		function init() {
+			google.earth.createInstance('map3d', initCB, failureCB, { database: 'http://khmdb.google.com/?db=mars' });
+		}
+		
+		function initCB(instance) {
+			ge = instance;
+			ge.getWindow().setVisibility(true);
+			
+			google.earth.addEventListener(ge.getGlobe(), 'mouseup', grabFocus);
+			google.earth.addEventListener(ge.getGlobe(), 'dblclick', function (event) { event.preventDefault(); });
+			google.earth.addEventListener(ge.getGlobe(), 'click', setNorth);
+			
+			alert("about to load");
+			addKmlFromUrl("http://localhost/overlay4.kml?bug=2");
+			alert("loaded.");
+			//addKmlFromUrl("http://insight.rit.edu/sd/planeterrainium/ge/lookTest.kml?bug=6");
+		}
+		
+		function showBalloon(message) {
+			// Set the text.
+			balloon = ge.createHtmlStringBalloon('');
+			balloon.setContentString("<p>" + message + "</p>");
+			
+			// Display the Balloon.
+			ge.setBalloon(balloon);
+			
+			// Auto-Close it in 4 seconds.
+			var t = setTimeout("clearBalloon()", 4000);
+		}
+		
+		function clearBalloon(){
+			ge.setBalloon(null);
+		}
+
+		function failureCB(errorCode) {
+		}
+      
+		function addKmlFromUrl(kmlUrl) {
+			google.earth.fetchKml(ge, kmlUrl, kmlFinishedLoading);
+		}
+      
+		function kmlFinishedLoading(kmlObject) {
+			if (kmlObject) {
+				ge.getFeatures().appendChild(kmlObject);
+    	      
+				if (kmlObject.getAbstractView() !== null)
+					ge.getView().setAbstractView(kmlObject.getAbstractView());
+			}
+		}
+		
+		function setNorth(evt){
+			var lookAt = ge.getView().copyAsLookAt(ge.ALTITUDE_RELATIVE_TO_GROUND);
+			lookAt.setHeading(0);
+			ge.getView().setAbstractView(lookAt);
+		}
+		
+		function flyTo(lat, lng, tilt, range) {
+			var lookAt = ge.getView().copyAsLookAt(ge.ALTITUDE_RELATIVE_TO_GROUND);
+			lookAt.setLatitude(lat);
+			lookAt.setLongitude(lng);
+			lookAt.setTilt(tilt);
+			lookAt.setHeading(0);   // new; without this, north pole points right
+			lookAt.setRange(range);
+			ge.getView().setAbstractView(lookAt);
+		}
+		
+		function flyToNextCoordinate(step){
+			// Increment the coordsIndex in the desired direction (by step)
+			coordsIndex += step;
+			if(coordsIndex >= coords.length) coordsIndex = 0;
+			if(coordsIndex < 0) coordsIndex = coords.length-1;
+			
+			// Fly to the desired coordinates.
+			flyTo(coords[coordsIndex][0], coords[coordsIndex][1], coords[coordsIndex][2], coords[coordsIndex][3]);
+			
+			// Show a Balloon displaying the appropriate message.
+			showBalloon(balloonStrs[coordsIndex]);
+		}
+		
+		function keyHandler(e){
+			var pressedKey;
+			if (document.all)	{ e = window.event; }
+			if (document.layers) { pressedKey = e.which; }
+			if (document.all)	{ pressedKey = e.keyCode; }
+			pressedCharacter = String.fromCharCode(pressedKey);
+			
+			// What to do with the key:
+			switch(pressedCharacter){
+				case 'X':
+				case 'x':
+					flyToNextCoordinate(1);
+					break;
+				case 'Z':
+				case 'z':
+					flyToNextCoordinate(-1);
+					break;
+			}
+		}
+
+		document.onkeypress = keyHandler;
+		google.setOnLoadCallback(init);
+   </script>
+
+</head>
+<body>
+   <div id="map3d" style="height: 100%; width: 100%;"></div>
+</body>
+</html>
